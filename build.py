@@ -1,6 +1,7 @@
 import os
 import glob
 import shutil
+import json
 from bs4 import BeautifulSoup
 
 def process_semi_auto_merge(files):
@@ -32,114 +33,162 @@ def process_semi_auto_merge(files):
         .tab-content.active { display: flex; flex-direction: column; align-items: center; }
         .tab-content table { margin-left: auto; margin-right: auto; }
 
-        /* 하위탭 + 이월 시간 설정: 상단 고정(2단바)에 한 덩어리로 붙임 */
-        .top-tab-panel { width: 100%; background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 8px 16px 6px; box-sizing: border-box; }
-        .timeline-control-panel { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; width: 100%; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9; }
-        .timeline-control-panel input { width: 60px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; }
-        
-        /* 적용 버튼 스타일 */
+        /* 하위탭 + 이월시간 패널을 한 줄로 묶는 레이아웃 */
+        .subtab-header-panel {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 커스텀 드롭다운 스타일 */
+        .top-tab-dropdown-wrapper {
+            position: relative !important;
+            display: inline-block !important;
+            user-select: none;
+        }
+        .custom-select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #64748b;
+            background: rgba(226, 232, 240, 0.85);
+            border: none;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 110px;
+            box-sizing: border-box;
+        }
+        .custom-select-trigger:hover {
+            background: rgba(203, 213, 225, 0.9);
+            color: #334155;
+        }
+        .custom-select-trigger svg {
+            transition: transform 0.2s ease;
+        }
+        .top-tab-dropdown-wrapper.open .custom-select-trigger {
+            background: #ffffff;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .top-tab-dropdown-wrapper.open .custom-select-trigger svg {
+            transform: rotate(180deg);
+            stroke: #4f46e5;
+        }
+
+        .custom-select-options {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 140px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            z-index: 999999;
+            padding: 6px 0;
+        }
+        .top-tab-dropdown-wrapper.open .custom-select-options {
+            display: block;
+        }
+        .custom-option {
+            padding: 8px 14px;
+            font-size: 0.88rem;
+            color: #334155;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+            text-align: left;
+        }
+        .custom-option:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .custom-option.selected {
+            background-color: #eff6ff;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        /* ⏱️ 상단 탭 한 줄에 포함되는 이월 시간 설정 박스 */
+        .inline-timeline-panel {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(226, 232, 240, 0.85);
+            padding: 5px 12px;
+            border-radius: 10px 10px 0 0;
+            font-size: 0.85rem;
+            color: #475569;
+            font-weight: 500;
+            box-sizing: border-box;
+        }
+        .inline-timeline-panel input {
+            width: 45px;
+            padding: 3px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.85rem;
+            outline: none;
+            background: #ffffff;
+        }
+        .inline-timeline-panel input:focus {
+            border-color: #4f46e5;
+        }
         .timeline-apply-btn {
-            padding: 5px 14px;
+            padding: 4px 10px;
             background: #4f46e5;
             color: #ffffff;
             border: none;
             border-radius: 6px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+            transition: background 0.2s;
         }
         .timeline-apply-btn:hover { background: #4338ca; }
-        .timeline-apply-btn:active { transform: scale(0.97); }
-
-        /* 상단 하위탭 가로 스크롤 및 스크롤바 강제 표시 */
-        .tab-scroll-container { 
-            width: 100% !important; 
-            max-width: 100% !important; 
-            margin: 0 auto !important; 
-            overflow-x: auto !important; 
-            white-space: nowrap !important; 
-            padding-bottom: 4px !important; 
-            cursor: grab; 
-            user-select: none; 
-            text-align: center; 
-            box-sizing: border-box !important;
-            scrollbar-width: auto !important;
-            -ms-overflow-style: auto !important;
-        }
-        .tab-scroll-container::-webkit-scrollbar { 
-            display: block !important; 
-            height: 8px !important; 
-        }
-        .tab-scroll-container::-webkit-scrollbar-track {
-            background: #f1f5f9 !important;
-            border-radius: 4px !important;
-        }
-        .tab-scroll-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1 !important;
-            border-radius: 4px !important;
-        }
-        .tab-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8 !important;
-        }
-        .tab-scroll-container.active { cursor: grabbing; }
-        .tab-nav { 
-            display: inline-flex !important; 
-            justify-content: center !important; 
-            gap: 2px !important; 
-            min-width: max-content !important;
-            background: #eef1f5 !important;
-            border-radius: 8px !important;
-            padding: 4px !important;
-        }
-        .tab-btn { 
-            flex: 0 0 auto !important; 
-            padding: 8px 16px !important; 
-            background: transparent; 
-            border: none; 
-            border-radius: 8px; 
-            color: #64748b; 
-            font-weight: 500; 
-            font-size: 0.85rem; 
-            cursor: pointer; 
-            transition: background 0.2s, color 0.2s; 
-        }
-        .tab-btn { -webkit-user-drag: none; user-select: none; }
-        .tab-btn:hover { background: rgba(255,255,255,0.6); color: #334155; }
-        .tab-btn.active { background: #4f46e5; color: #fff; font-weight: 600; }
         tr.timeline-past { text-decoration: line-through !important; opacity: 0.45 !important; color: #888888 !important; }
     """
 
     script_tag = base_soup.new_tag('script')
     script_tag.string = """
         const BASE_SECONDS = 90;
-        function openTab(evt, tabId) {
-            if (window.isTabDragging) return;
+        
+        function toggleCustomDropdown(e) {
+            e.stopPropagation();
+            const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
+            if (wrapper) wrapper.classList.toggle('open');
+        }
+
+        function selectCustomOption(el, tabId, tabName) {
+            document.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            
+            const label = document.getElementById('selected-subtab-label');
+            if (label) label.textContent = tabName;
+            
+            const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
+            if (wrapper) wrapper.classList.remove('open');
+
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            evt.currentTarget.classList.add('active');
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
         }
-        function initTabDragScroll() {
-            const slider = document.querySelector('.tab-scroll-container');
-            if (!slider) return;
-            let isDown = false, startX, scrollLeft, dragDistance = 0;
-            slider.addEventListener('mousedown', (e) => {
-                e.preventDefault(); isDown = true; window.isTabDragging = false; dragDistance = 0;
-                slider.classList.add('active'); startX = e.pageX - slider.offsetLeft; scrollLeft = slider.scrollLeft;
-            });
-            slider.addEventListener('mouseleave', () => { isDown = false; slider.classList.remove('active'); });
-            slider.addEventListener('mouseup', () => {
-                isDown = false; slider.classList.remove('active');
-                if (dragDistance > 5) { window.isTabDragging = true; setTimeout(() => { window.isTabDragging = false; }, 50); }
-            });
-            slider.addEventListener('mousemove', (e) => {
-                if (!isDown) return; e.preventDefault();
-                const x = e.pageX - slider.offsetLeft;
-                dragDistance = Math.abs(x - startX);
-                slider.scrollLeft = scrollLeft - (x - startX) * 1.5;
-            });
-        }
+
+        document.addEventListener('click', (e) => {
+            const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                wrapper.classList.remove('open');
+            }
+        });
+
         function timeToSeconds(str) {
             if (!str) return null;
             const m = str.trim().match(/^(\\d{1,2}):([0-5]\\d)/);
@@ -149,6 +198,7 @@ def process_semi_auto_merge(files):
             const sign = sec < 0 ? "-" : ""; sec = Math.abs(sec);
             return sign + Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
         }
+
         function applyCustomTimeline() {
             const input = document.getElementById('user-timeline-input');
             let remainSec = parseInt(input.value, 10);
@@ -184,23 +234,35 @@ def process_semi_auto_merge(files):
                 });
             });
         }
-        document.addEventListener('DOMContentLoaded', initTabDragScroll);
     """
     if base_soup.body:
         base_soup.body.append(script_tag)
 
-    btns, contents = "", ""
+    options_html, contents = "", ""
+    first_tab_name = parsed_contents[0][0] if parsed_contents else ""
+
     for idx, (tab_name, html) in enumerate(parsed_contents):
         tab_id = f"tab-page-{idx + 1}"
         is_active = "active" if idx == 0 else ""
-        btns += f'<button class="tab-btn {is_active}" onclick="openTab(event, \'{tab_id}\')">{tab_name}</button>'
+        selected_cls = "selected" if idx == 0 else ""
+        options_html += f'<div class="custom-option {selected_cls}" onclick="selectCustomOption(this, \'{tab_id}\', \'{tab_name}\')">{tab_name}</div>'
         contents += f'<div id="{tab_id}" class="tab-content {is_active}">{html}</div>'
 
     top_nav_html = f'''
-        <div class="top-tab-panel">
-            <div class="tab-scroll-container"><div class="tab-nav">{btns}</div></div>
-            <div class="timeline-control-panel">
-                <strong>⏱️ 이월 시간 설정:</strong>
+        <div class="subtab-header-panel">
+            <div class="top-tab-dropdown-wrapper">
+                <div class="custom-select-trigger" onclick="toggleCustomDropdown(event)">
+                    <span id="selected-subtab-label">{first_tab_name}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <div class="custom-select-options">
+                    {options_html}
+                </div>
+            </div>
+            <div class="inline-timeline-panel">
+                <span>⏱️ 이월</span>
                 <input type="number" id="user-timeline-input" value="90" min="20" max="90"> 초
                 <button type="button" class="timeline-apply-btn" onclick="applyCustomTimeline()">적용</button>
             </div>
@@ -249,76 +311,113 @@ def process_full_auto_merge(files):
         .tab-content td, .tab-content th { white-space: normal !important; word-break: break-all !important; overflow-wrap: break-word !important; max-width: 100% !important; box-sizing: border-box !important; }
         .tab-content img { max-width: 100% !important; height: auto !important; }
 
-        /* 하위탭: 상단 고정(2단바) */
-        .top-tab-panel { width: 100%; background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 8px 16px; box-sizing: border-box; }
-        
-        /* 상단 하위탭 가로 스크롤 및 스크롤바 강제 표시 */
-        .tab-scroll-container { 
-            width: 100% !important; 
-            max-width: 100% !important; 
-            margin: 0 auto !important; 
-            overflow-x: auto !important; 
-            white-space: nowrap !important; 
-            padding: 4px 0 8px 0 !important; 
-            cursor: grab; 
-            user-select: none; 
-            text-align: center; 
-            box-sizing: border-box !important;
-            scrollbar-width: auto !important;
-            -ms-overflow-style: auto !important;
+        .top-tab-dropdown-wrapper {
+            position: relative !important;
+            display: inline-block !important;
+            user-select: none;
         }
-        .tab-scroll-container::-webkit-scrollbar { 
-            display: block !important; 
-            height: 8px !important; 
+        .custom-select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #64748b;
+            background: rgba(226, 232, 240, 0.85);
+            border: none;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 110px;
+            box-sizing: border-box;
         }
-        .tab-scroll-container::-webkit-scrollbar-track {
-            background: #f1f5f9 !important;
-            border-radius: 4px !important;
+        .custom-select-trigger:hover {
+            background: rgba(203, 213, 225, 0.9);
+            color: #334155;
         }
-        .tab-scroll-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1 !important;
-            border-radius: 4px !important;
+        .custom-select-trigger svg {
+            transition: transform 0.2s ease;
         }
-        .tab-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8 !important;
+        .top-tab-dropdown-wrapper.open .custom-select-trigger {
+            background: #ffffff;
+            color: #4f46e5;
+            font-weight: 600;
         }
-        .tab-scroll-container.active { cursor: grabbing; }
-        .tab-nav { 
-            display: inline-flex !important; 
-            justify-content: center !important; 
-            gap: 2px !important; 
-            min-width: max-content !important;
-            background: #eef1f5 !important;
-            border-radius: 8px !important;
-            padding: 4px !important;
+        .top-tab-dropdown-wrapper.open .custom-select-trigger svg {
+            transform: rotate(180deg);
+            stroke: #4f46e5;
         }
-        .tab-btn { 
-            flex: 0 0 auto !important; 
-            padding: 8px 16px !important; 
-            background: transparent; 
-            border: none; 
-            border-radius: 8px; 
-            color: #64748b; 
-            font-weight: 500; 
-            font-size: 0.85rem; 
-            cursor: pointer; 
-            transition: background 0.2s, color 0.2s; 
+
+        .custom-select-options {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 140px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            z-index: 999999;
+            padding: 6px 0;
         }
-        .tab-btn { -webkit-user-drag: none; user-select: none; }
-        .tab-btn:hover { background: rgba(255,255,255,0.6); color: #334155; }
-        .tab-btn.active { background: #4f46e5; color: #fff; font-weight: 600; }
+        .top-tab-dropdown-wrapper.open .custom-select-options {
+            display: block;
+        }
+        .custom-option {
+            padding: 8px 14px;
+            font-size: 0.88rem;
+            color: #334155;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+            text-align: left;
+        }
+        .custom-option:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .custom-option.selected {
+            background-color: #eff6ff;
+            color: #4f46e5;
+            font-weight: 600;
+        }
     """
 
     script_tag = base_soup.new_tag('script')
     script_tag.string = """
-        function openTab(evt, tabId) {
-            if (window.isTabDragging) return;
+        function toggleCustomDropdown(e) {
+            e.stopPropagation();
+            const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
+            if (wrapper) wrapper.classList.toggle('open');
+        }
+
+        function selectCustomOption(el, tabId, tabName) {
+            document.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            
+            const label = document.getElementById('selected-subtab-label');
+            if (label) label.textContent = tabName;
+            
+            const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
+            if (wrapper) wrapper.classList.remove('open');
+
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            evt.currentTarget.classList.add('active');
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
             fitActiveTab();
         }
+
+        document.addEventListener('click', (e) => {
+            const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                wrapper.classList.remove('open');
+            }
+        });
+
         function fitActiveTab() {
             const activeTab = document.querySelector('.tab-content.active');
             if (!activeTab) return;
@@ -334,42 +433,34 @@ def process_full_auto_merge(files):
                 activeTab.style.marginBottom = '0px';
             }
         }
-        function initTabDragScroll() {
-            const slider = document.querySelector('.tab-scroll-container');
-            if (!slider) return;
-            let isDown = false, startX, scrollLeft, dragDistance = 0;
-            slider.addEventListener('mousedown', (e) => {
-                e.preventDefault(); isDown = true; window.isTabDragging = false; dragDistance = 0;
-                slider.classList.add('active'); startX = e.pageX - slider.offsetLeft; scrollLeft = slider.scrollLeft;
-            });
-            slider.addEventListener('mouseleave', () => { isDown = false; slider.classList.remove('active'); });
-            slider.addEventListener('mouseup', () => {
-                isDown = false; slider.classList.remove('active');
-                if (dragDistance > 5) { window.isTabDragging = true; setTimeout(() => { window.isTabDragging = false; }, 50); }
-            });
-            slider.addEventListener('mousemove', (e) => {
-                if (!isDown) return; e.preventDefault();
-                const x = e.pageX - slider.offsetLeft;
-                dragDistance = Math.abs(x - startX);
-                slider.scrollLeft = scrollLeft - (x - startX) * 1.5;
-            });
-        }
         window.addEventListener('resize', fitActiveTab);
-        document.addEventListener('DOMContentLoaded', () => { initTabDragScroll(); fitActiveTab(); });
+        document.addEventListener('DOMContentLoaded', fitActiveTab);
+        setTimeout(fitActiveTab, 100);
     """
     if base_soup.body:
         base_soup.body.append(script_tag)
 
-    btns, contents = "", ""
+    options_html, contents = "", ""
+    first_tab_name = parsed_contents[0][0] if parsed_contents else ""
+
     for idx, (tab_name, html) in enumerate(parsed_contents):
         tab_id = f"tab-page-{idx + 1}"
         is_active = "active" if idx == 0 else ""
-        btns += f'<button class="tab-btn {is_active}" onclick="openTab(event, \'{tab_id}\')">{tab_name}</button>'
+        selected_cls = "selected" if idx == 0 else ""
+        options_html += f'<div class="custom-option {selected_cls}" onclick="selectCustomOption(this, \'{tab_id}\', \'{tab_name}\')">{tab_name}</div>'
         contents += f'<div id="{tab_id}" class="tab-content {is_active}">{html}</div>'
 
     top_nav_html = f'''
-        <div class="top-tab-panel">
-            <div class="tab-scroll-container"><div class="tab-nav">{btns}</div></div>
+        <div class="top-tab-dropdown-wrapper">
+            <div class="custom-select-trigger" onclick="toggleCustomDropdown(event)">
+                <span id="selected-subtab-label">{first_tab_name}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+            <div class="custom-select-options">
+                {options_html}
+            </div>
         </div>
     '''
 
@@ -406,8 +497,23 @@ def build_site():
             with open("recruits.html", "w", encoding="utf-8") as f_out:
                 f_out.write(f.read())
 
+    bg_folder = "images/bg"
+    bg_files = []
+    if os.path.exists(bg_folder):
+        exts = ('*.jpg', '*.jpeg', '*.png', '*.webp', '*.gif')
+        for ext in exts:
+            for f in glob.glob(os.path.join(bg_folder, ext)):
+                bg_files.append(f.replace("\\", "/"))
+
     if os.path.exists("templates/index_template.html"):
-        shutil.copy("templates/index_template.html", "index.html")
-   
+        with open("templates/index_template.html", "r", encoding="utf-8") as f:
+            template_content = f.read()
+        
+        json_bg_files = json.dumps(bg_files, ensure_ascii=False)
+        final_index = template_content.replace('"{{BG_IMAGES_PLACEHOLDER}}"', json_bg_files)
+        
+        with open("index.html", "w", encoding="utf-8") as f_out:
+            f_out.write(final_index)
+
 if __name__ == "__main__":
     build_site()

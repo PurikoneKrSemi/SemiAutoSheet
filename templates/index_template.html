@@ -13,9 +13,13 @@
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-size: cover;
+      background-position: center bottom;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
     }
     
-    /* 상단 탭 고정 (body flex 영향 받지 않도록 독립 포지셔닝) */
+    /* 상단 고정 탭 바: 반투명 유리에 투명도 처리 */
     .tab-bar {
       position: fixed !important;
       top: 0 !important;
@@ -24,32 +28,49 @@
       width: 100vw !important;
       z-index: 999999 !important;
       display: flex !important;
-      flex-direction: column !important;
-      background-color: #f8fafc !important;
-      border-bottom: 1px solid #e2e8f0 !important;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+      flex-direction: row !important;
+      align-items: flex-end !important; /* 상위 탭 하단 정렬 */
+      justify-content: flex-start !important;
+      background-color: rgba(248, 250, 252, 0.75) !important; /* 투명도 적용 */
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+      padding: 10px 16px 0 16px !important;
+      gap: 16px !important;
     }
+
     .tab-bar-main {
       display: flex !important;
       align-items: center !important;
-      justify-content: center !important;
+      justify-content: flex-start !important;
       gap: 4px !important;
-      padding: 10px 16px !important;
+      flex-shrink: 0;
+    }
+
+    #subtab-slot {
+      display: flex !important;
+      align-items: flex-end !important; /* 하단 수평 라인 밀착 */
+      flex-shrink: 0;
+      margin-bottom: 0 !important;      /* 하단 여백 제거 */
     }
     #subtab-slot:empty { display: none; }
+
+    /* 이전 상위 탭 스타일 복구 */
     .main-tab-btn {
       padding: 8px 18px;
       font-size: 0.95rem;
       font-weight: 500;
       color: #64748b;
-      background: #e2e8f0;
+      background: rgba(226, 232, 240, 0.85);
       border: none;
       border-radius: 10px 10px 0 0;
       cursor: pointer;
       transition: all 0.2s ease;
+      white-space: nowrap;
     }
     .main-tab-btn:hover {
-      background: #cbd5e1;
+      background: rgba(203, 213, 225, 0.9);
       color: #334155;
     }
     .main-tab-btn.active {
@@ -58,7 +79,6 @@
       font-weight: 600;
     }
 
-    /* 상단 고정 바 높이만큼 본문 여백 확보 (실제 높이는 JS가 동적으로 설정) */
     #content-container {
       margin-top: 56px;
       width: 100%;
@@ -69,7 +89,7 @@
 </head>
 <body>
 
-  <!-- 상단 고정 메인 탭 + 하위탭 슬롯 -->
+  <!-- 상단 고정: 상위 탭 + 우측 하위 탭 드롭다운 -->
   <div class="tab-bar">
     <div class="tab-bar-main">
       <button type="button" class="main-tab-btn active" onclick="switchTab(event, this, 'semi_auto.html')">세미오토</button>
@@ -83,6 +103,14 @@
   <div id="content-container"></div>
 
   <script>
+    const bgImages = "{{BG_IMAGES_PLACEHOLDER}}";
+
+    function setRandomBackground() {
+      if (!Array.isArray(bgImages) || bgImages.length === 0) return;
+      const randomImage = bgImages[Math.floor(Math.random() * bgImages.length)];
+      document.body.style.backgroundImage = `url('${randomImage}')`;
+    }
+
     function switchTab(evt, buttonEl, fileUrl) {
       if (evt && typeof evt.preventDefault === 'function') {
         evt.preventDefault();
@@ -121,9 +149,18 @@
 
         if (subtabSlot) {
           subtabSlot.innerHTML = '';
-          const subtabPanel = container.querySelector('.top-tab-panel');
+          const subtabPanel = container.querySelector('.subtab-header-panel') || container.querySelector('.top-tab-dropdown-wrapper');
           if (subtabPanel) subtabSlot.appendChild(subtabPanel);
         }
+
+        setTimeout(() => {
+          const table = container.querySelector('.roster-table');
+          const toolbar = container.querySelector('.roster-toolbar');
+          if (table && toolbar) {
+            toolbar.style.width = table.offsetWidth + 'px';
+          }
+        }, 50);
+
       } catch (err) {
         container.innerHTML = '<div style="color: red; padding: 20px; text-align: center;">페이지를 불러올 수 없습니다: ' + err.message + '</div>';
         if (subtabSlot) subtabSlot.innerHTML = '';
@@ -142,8 +179,12 @@
     window.addEventListener('resize', updateContentOffset);
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => loadPage('semi_auto.html'));
+      document.addEventListener('DOMContentLoaded', () => {
+        setRandomBackground();
+        loadPage('semi_auto.html');
+      });
     } else {
+      setRandomBackground();
       loadPage('semi_auto.html');
     }
   </script>
