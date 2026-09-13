@@ -33,14 +33,14 @@ def process_semi_auto_merge(files):
         .tab-content.active { display: flex; flex-direction: column; align-items: center; }
         .tab-content table { margin-left: auto; margin-right: auto; }
 
-        /* 하위탭 + 이월시간 패널을 한 줄로 묶는 레이아웃 */
+        /* 하위탭 + 이월시간 패널 레이아웃 */
         .subtab-header-panel {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        /* 커스텀 드롭다운 스타일 */
+        /* 모던 커스텀 드롭다운 스타일 (밝은 배경 적용) */
         .top-tab-dropdown-wrapper {
             position: relative !important;
             display: inline-block !important;
@@ -54,18 +54,19 @@ def process_semi_auto_merge(files):
             padding: 8px 18px;
             font-size: 0.95rem;
             font-weight: 500;
-            color: #64748b;
-            background: rgba(226, 232, 240, 0.85);
+            color: #475569;
+            background: rgba(255, 255, 255, 0.85);
             border: none;
             border-radius: 10px 10px 0 0;
             cursor: pointer;
             transition: all 0.2s ease;
             min-width: 110px;
             box-sizing: border-box;
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
         }
         .custom-select-trigger:hover {
-            background: rgba(203, 213, 225, 0.9);
-            color: #334155;
+            background: #ffffff;
+            color: #0f172a;
         }
         .custom-select-trigger svg {
             transition: transform 0.2s ease;
@@ -116,18 +117,19 @@ def process_semi_auto_merge(files):
             font-weight: 600;
         }
 
-        /* ⏱️ 상단 탭 한 줄에 포함되는 이월 시간 설정 박스 */
+        /* ⏱️ 이월 시간 박스 (밝은 배경 적용) */
         .inline-timeline-panel {
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(226, 232, 240, 0.85);
+            background: rgba(255, 255, 255, 0.85);
             padding: 5px 12px;
             border-radius: 10px 10px 0 0;
             font-size: 0.85rem;
             color: #475569;
             font-weight: 500;
             box-sizing: border-box;
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
         }
         .inline-timeline-panel input {
             width: 45px;
@@ -324,18 +326,19 @@ def process_full_auto_merge(files):
             padding: 8px 18px;
             font-size: 0.95rem;
             font-weight: 500;
-            color: #64748b;
-            background: rgba(226, 232, 240, 0.85);
+            color: #475569;
+            background: rgba(255, 255, 255, 0.85);
             border: none;
             border-radius: 10px 10px 0 0;
             cursor: pointer;
             transition: all 0.2s ease;
             min-width: 110px;
             box-sizing: border-box;
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
         }
         .custom-select-trigger:hover {
-            background: rgba(203, 213, 225, 0.9);
-            color: #334155;
+            background: #ffffff;
+            color: #0f172a;
         }
         .custom-select-trigger svg {
             transition: transform 0.2s ease;
