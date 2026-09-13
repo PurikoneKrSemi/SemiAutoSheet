@@ -38,6 +38,34 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
       padding: 10px 16px 0 16px !important;
       gap: 16px !important;
+
+      /* ★ 핵심: 모바일 가로 스크롤 추가 */
+      overflow-x: auto !important;
+      white-space: nowrap !important;
+      -webkit-overflow-scrolling: touch !important; /* iOS 모바일 부드러운 터치 스크롤 */
+      touch-action: pan-x !important; /* 브라우저에게 가로 스크롤 전용임을 명시 */
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 드래그 중일 때 커서 모양 변경 */
+    .tab-bar.active-drag {
+      cursor: grabbing;
+    }
+
+    .tab-bar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    /* 스크롤바가 너무 두껍게 보이지 않도록 깔끔하게 처리 (선택사항) */
+    .tab-bar::-webkit-scrollbar {
+      height: 3px;
+    }
+    .tab-bar::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.5);
+      border-radius: 3px;
     }
 
     .tab-bar-main {
@@ -51,8 +79,8 @@
     #subtab-slot {
       display: flex !important;
       align-items: flex-end !important; /* 하단 수평 라인 밀착 */
-      flex-shrink: 0;
       margin-bottom: 0 !important;      /* 하단 여백 제거 */
+      flex-shrink: 0; /* 화면이 좁아져도 탭 버튼이 줄어들지 않음 */
     }
     #subtab-slot:empty { display: none; }
 
@@ -189,6 +217,95 @@
       setRandomBackground();
       loadPage('semi_auto.html');
     }
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabBar = document.querySelector('.tab-bar');
+      if (!tabBar) return;
+
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+      let isDragging = false;
+      let startPos = { x: 0, y: 0 };
+
+      // --- PC 마우스 이벤트 ---
+      tabBar.addEventListener('mousedown', (e) => {
+        // input 입력창이나 드롭다운 속 요소는 제외
+        if (e.target.closest('input, select, .custom-select-options')) return;
+
+        isDown = true;
+        isDragging = false;
+        startPos = { x: e.clientX, y: e.clientY };
+        startX = e.pageX - tabBar.offsetLeft;
+        scrollLeft = tabBar.scrollLeft;
+        tabBar.classList.add('active-drag');
+      });
+
+      tabBar.addEventListener('mouseleave', () => {
+        isDown = false;
+        tabBar.classList.remove('active-drag');
+      });
+
+      tabBar.addEventListener('mouseup', () => {
+        isDown = false;
+        tabBar.classList.remove('active-drag');
+      });
+
+      tabBar.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        const x = e.pageX - tabBar.offsetLeft;
+        const walk = (x - startX) * 1.5;
+
+        // 5px 이상 움직이면 드래그로 판정
+        if (Math.abs(e.clientX - startPos.x) > 5) {
+          isDragging = true;
+        }
+
+        if (isDragging) {
+          e.preventDefault();
+          tabBar.scrollLeft = scrollLeft - walk;
+        }
+      });
+
+      // --- 모바일 터치 이벤트 ---
+      tabBar.addEventListener('touchstart', (e) => {
+        if (e.target.closest('input, select, .custom-select-options')) return;
+
+        isDown = true;
+        isDragging = false;
+        const touch = e.touches[0];
+        startPos = { x: touch.clientX, y: touch.clientY };
+        startX = touch.pageX - tabBar.offsetLeft;
+        scrollLeft = tabBar.scrollLeft;
+      }, { passive: true });
+
+      tabBar.addEventListener('touchend', () => {
+        isDown = false;
+      });
+
+      tabBar.addEventListener('touchmove', (e) => {
+        if (!isDown) return;
+        const touch = e.touches[0];
+        const x = touch.pageX - tabBar.offsetLeft;
+        const walk = (x - startX) * 1.2;
+
+        if (Math.abs(touch.clientX - startPos.x) > 5) {
+          isDragging = true;
+        }
+
+        if (isDragging) {
+          tabBar.scrollLeft = scrollLeft - walk;
+        }
+      }, { passive: true });
+
+      // ★ 핵심: 드래그가 발생한 경우에는 버튼 클릭 이벤트를 캡처하여 차단
+      tabBar.addEventListener('click', (e) => {
+        if (isDragging) {
+          e.preventDefault();
+          e.stopPropagation();
+          isDragging = false;
+        }
+      }, true);
+    });
   </script>
 </body>
 </html>
