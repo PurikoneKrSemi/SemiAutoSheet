@@ -578,9 +578,7 @@
 
         .custom-select-options {
             display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
+            position: fixed;
             min-width: 140px;
             max-height: 260px;
             overflow-y: auto;
@@ -22019,7 +22017,24 @@
         function toggleCustomDropdown(e) {
             e.stopPropagation();
             const wrapper = document.querySelector('.top-tab-dropdown-wrapper');
-            if (wrapper) wrapper.classList.toggle('open');
+            if (!wrapper) return;
+
+            if (wrapper.classList.contains('open')) {
+                wrapper.classList.remove('open');
+                return;
+            }
+
+            // 상위 탭바가 가로 스크롤 컨테이너(overflow-x:auto)라 position:absolute로는
+            // 세로로 잘려서 안 보이므로, position:fixed로 두고 트리거 기준 좌표를 직접 계산해서 배치
+            const trigger = wrapper.querySelector('.custom-select-trigger');
+            const options = wrapper.querySelector('.custom-select-options');
+            if (trigger && options) {
+                const rect = trigger.getBoundingClientRect();
+                options.style.top = rect.bottom + 'px';
+                options.style.left = rect.left + 'px';
+                options.style.minWidth = rect.width + 'px';
+            }
+            wrapper.classList.add('open');
         }
 
         function selectCustomOption(el, tabId, tabName) {

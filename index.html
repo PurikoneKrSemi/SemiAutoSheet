@@ -27,46 +27,30 @@
       right: 0 !important;
       width: 100vw !important;
       z-index: 999999 !important;
-      display: flex !important;
-      flex-direction: row !important;
-      align-items: flex-end !important; /* 상위 탭 하단 정렬 */
-      justify-content: flex-start !important;
       background-color: rgba(248, 250, 252, 0.75) !important; /* 투명도 적용 */
       backdrop-filter: blur(12px) saturate(180%);
       -webkit-backdrop-filter: blur(12px) saturate(180%);
       border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-      padding: 10px 16px 0 16px !important;
-      gap: 16px !important;
+    }
 
-      /* ★ 핵심: 모바일 가로 스크롤 추가 */
-      overflow-x: auto !important;
-      white-space: nowrap !important;
-      -webkit-overflow-scrolling: touch !important; /* iOS 모바일 부드러운 터치 스크롤 */
-      touch-action: pan-x !important; /* 브라우저에게 가로 스크롤 전용임을 명시 */
+    /* 상위탭 + 하위탭 슬롯을 하나의 스크롤 묶음으로: 좁아지면 전체가 통째로 스크롤됨 */
+    .tab-bar-scroll {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: flex-end !important; /* 상위 탭 하단 정렬 */
+      justify-content: flex-start !important;
+      gap: 16px !important;
+      padding: 10px 16px 0 16px !important;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       cursor: grab;
       user-select: none;
-      -webkit-user-select: none;
     }
-
-    /* 드래그 중일 때 커서 모양 변경 */
-    .tab-bar.active-drag {
-      cursor: grabbing;
-    }
-
-    .tab-bar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-    }
-
-    /* 스크롤바가 너무 두껍게 보이지 않도록 깔끔하게 처리 (선택사항) */
-    .tab-bar::-webkit-scrollbar {
-      height: 3px;
-    }
-    .tab-bar::-webkit-scrollbar-thumb {
-      background: rgba(148, 163, 184, 0.5);
-      border-radius: 3px;
-    }
+    .tab-bar-scroll::-webkit-scrollbar { display: none; }
+    .tab-bar-scroll.dragging { cursor: grabbing; }
 
     .tab-bar-main {
       display: flex !important;
@@ -79,8 +63,8 @@
     #subtab-slot {
       display: flex !important;
       align-items: flex-end !important; /* 하단 수평 라인 밀착 */
+      flex-shrink: 0;
       margin-bottom: 0 !important;      /* 하단 여백 제거 */
-      flex-shrink: 0; /* 화면이 좁아져도 탭 버튼이 줄어들지 않음 */
     }
     #subtab-slot:empty { display: none; }
 
@@ -96,6 +80,7 @@
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
+      flex-shrink: 0;
       box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
     }
     .main-tab-btn:hover {
@@ -119,15 +104,17 @@
 </head>
 <body>
 
-  <!-- 상단 고정: 상위 탭 + 우측 하위 탭 드롭다운 -->
+  <!-- 상단 고정: 상위 탭 + 우측 하위 탭 드롭다운 (하나의 스크롤 묶음) -->
   <div class="tab-bar">
-    <div class="tab-bar-main">
-      <button type="button" class="main-tab-btn active" onclick="switchTab(event, this, 'semi_auto.html')">세미오토</button>
-      <button type="button" class="main-tab-btn" onclick="switchTab(event, this, 'full_auto.html')">풀오토</button>
-      <button type="button" class="main-tab-btn" onclick="switchTab(event, this, 'recruits.html')">채용시트</button>
-      <button type="button" class="main-tab-btn" onclick="switchTab(event, this, 'abyss.html')">심연토벌전</button>
+    <div class="tab-bar-scroll">
+      <div class="tab-bar-main">
+        <button type="button" class="main-tab-btn active" onclick="switchTab(event, this, 'semi_auto.html')">세미오토</button>
+        <button type="button" class="main-tab-btn" onclick="switchTab(event, this, 'full_auto.html')">풀오토</button>
+        <button type="button" class="main-tab-btn" onclick="switchTab(event, this, 'recruits.html')">채용시트</button>
+        <button type="button" class="main-tab-btn" onclick="switchTab(event, this, 'abyss.html')">심연토벌전</button>
+      </div>
+      <div id="subtab-slot"></div>
     </div>
-    <div id="subtab-slot"></div>
   </div>
 
   <div id="content-container"></div>
@@ -139,6 +126,75 @@
       if (!Array.isArray(bgImages) || bgImages.length === 0) return;
       const randomImage = bgImages[Math.floor(Math.random() * bgImages.length)];
       document.body.style.backgroundImage = `url('${randomImage}')`;
+    }
+
+    function initMainTabDragScroll() {
+      const slider = document.querySelector('.tab-bar-scroll');
+      if (!slider) return;
+      let isDown = false, startX = 0, scrollLeft = 0, dragDistance = 0;
+
+      const start = (pageX) => {
+        isDown = true;
+        dragDistance = 0;
+        slider.classList.add('dragging');
+        startX = pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+      };
+      const move = (pageX) => {
+        if (!isDown) return;
+        const x = pageX - slider.offsetLeft;
+        const walk = x - startX;
+        dragDistance = Math.abs(walk);
+        slider.scrollLeft = scrollLeft - walk;
+      };
+      const end = () => {
+        isDown = false;
+        slider.classList.remove('dragging');
+      };
+
+      slider.addEventListener('mousedown', (e) => { e.preventDefault(); start(e.pageX); });
+      window.addEventListener('mousemove', (e) => { if (isDown) { e.preventDefault(); move(e.pageX); } });
+      window.addEventListener('mouseup', end);
+
+      slider.addEventListener('touchstart', (e) => start(e.touches[0].pageX), { passive: true });
+      slider.addEventListener('touchmove', (e) => move(e.touches[0].pageX), { passive: true });
+      slider.addEventListener('touchend', end);
+
+      // 드래그였다면(클릭이 아니라면) 탭 전환이 실행되지 않도록 클릭을 캡처 단계에서 막음
+      slider.addEventListener('click', (e) => {
+        if (dragDistance > 5) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+    }
+
+    let rosterResizeObserver = null;
+
+    function syncRosterToolbarWidth() {
+      const container = document.getElementById('content-container');
+      if (!container) return;
+
+      // 페이지가 바뀌면 이전 옵저버는 정리(끊긴 요소를 계속 관찰하지 않도록)
+      if (rosterResizeObserver) {
+        rosterResizeObserver.disconnect();
+        rosterResizeObserver = null;
+      }
+
+      const table = container.querySelector('.roster-table');
+      const toolbar = container.querySelector('.roster-toolbar');
+      if (!table || !toolbar) return;
+
+      const apply = () => { toolbar.style.width = table.offsetWidth + 'px'; };
+      apply();
+
+      if (window.ResizeObserver) {
+        rosterResizeObserver = new ResizeObserver(apply);
+        rosterResizeObserver.observe(table);
+      } else {
+        // ResizeObserver 미지원 브라우저를 위한 대체 수단
+        window.addEventListener('resize', apply);
+      }
     }
 
     function switchTab(evt, buttonEl, fileUrl) {
@@ -183,13 +239,7 @@
           if (subtabPanel) subtabSlot.appendChild(subtabPanel);
         }
 
-        setTimeout(() => {
-          const table = container.querySelector('.roster-table');
-          const toolbar = container.querySelector('.roster-toolbar');
-          if (table && toolbar) {
-            toolbar.style.width = table.offsetWidth + 'px';
-          }
-        }, 50);
+        syncRosterToolbarWidth();
 
       } catch (err) {
         container.innerHTML = '<div style="color: red; padding: 20px; text-align: center;">페이지를 불러올 수 없습니다: ' + err.message + '</div>';
@@ -211,101 +261,14 @@
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         setRandomBackground();
+        initMainTabDragScroll();
         loadPage('semi_auto.html');
       });
     } else {
       setRandomBackground();
+      initMainTabDragScroll();
       loadPage('semi_auto.html');
     }
-    document.addEventListener('DOMContentLoaded', () => {
-      const tabBar = document.querySelector('.tab-bar');
-      if (!tabBar) return;
-
-      let isDown = false;
-      let startX;
-      let scrollLeft;
-      let isDragging = false;
-      let startPos = { x: 0, y: 0 };
-
-      // --- PC 마우스 이벤트 ---
-      tabBar.addEventListener('mousedown', (e) => {
-        // input 입력창이나 드롭다운 속 요소는 제외
-        if (e.target.closest('input, select, .custom-select-options')) return;
-
-        isDown = true;
-        isDragging = false;
-        startPos = { x: e.clientX, y: e.clientY };
-        startX = e.pageX - tabBar.offsetLeft;
-        scrollLeft = tabBar.scrollLeft;
-        tabBar.classList.add('active-drag');
-      });
-
-      tabBar.addEventListener('mouseleave', () => {
-        isDown = false;
-        tabBar.classList.remove('active-drag');
-      });
-
-      tabBar.addEventListener('mouseup', () => {
-        isDown = false;
-        tabBar.classList.remove('active-drag');
-      });
-
-      tabBar.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
-        const x = e.pageX - tabBar.offsetLeft;
-        const walk = (x - startX) * 1.5;
-
-        // 5px 이상 움직이면 드래그로 판정
-        if (Math.abs(e.clientX - startPos.x) > 5) {
-          isDragging = true;
-        }
-
-        if (isDragging) {
-          e.preventDefault();
-          tabBar.scrollLeft = scrollLeft - walk;
-        }
-      });
-
-      // --- 모바일 터치 이벤트 ---
-      tabBar.addEventListener('touchstart', (e) => {
-        if (e.target.closest('input, select, .custom-select-options')) return;
-
-        isDown = true;
-        isDragging = false;
-        const touch = e.touches[0];
-        startPos = { x: touch.clientX, y: touch.clientY };
-        startX = touch.pageX - tabBar.offsetLeft;
-        scrollLeft = tabBar.scrollLeft;
-      }, { passive: true });
-
-      tabBar.addEventListener('touchend', () => {
-        isDown = false;
-      });
-
-      tabBar.addEventListener('touchmove', (e) => {
-        if (!isDown) return;
-        const touch = e.touches[0];
-        const x = touch.pageX - tabBar.offsetLeft;
-        const walk = (x - startX) * 1.2;
-
-        if (Math.abs(touch.clientX - startPos.x) > 5) {
-          isDragging = true;
-        }
-
-        if (isDragging) {
-          tabBar.scrollLeft = scrollLeft - walk;
-        }
-      }, { passive: true });
-
-      // ★ 핵심: 드래그가 발생한 경우에는 버튼 클릭 이벤트를 캡처하여 차단
-      tabBar.addEventListener('click', (e) => {
-        if (isDragging) {
-          e.preventDefault();
-          e.stopPropagation();
-          isDragging = false;
-        }
-      }, true);
-    });
   </script>
 </body>
 </html>
